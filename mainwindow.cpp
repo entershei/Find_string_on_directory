@@ -46,6 +46,11 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
+    if (!thread_run.index && !thread_run.find_string) {
+        QWidget::close();
+        return;
+    }
+
     if (!future_for_index.watcher.result().first) {
         qDebug() << "finish with error";
         return;
@@ -86,12 +91,16 @@ void main_window::index_directory() {
 }
 
 void main_window::search_finished() {
+    if (!thread_run.index && !thread_run.find_string) {
+        QWidget::close();
+        return;
+    }
+
     if (!future_for_search.watcher.result().first) {
         qDebug() << "search finished with error";
         return;
     }
 
-    //ui->treeWidget->clear();
     files_with_string = future_for_search.watcher.result().second;
 
     QDir base(dir_path);
@@ -140,6 +149,6 @@ void main_window::stop_find_string(std::atomic_bool &find_string_run) {
 void main_window::close() {
     stop_indexation(thread_run.index);
     stop_find_string(thread_run.find_string);
-    QWidget::close();
+    //QWidget::close();
 }
 

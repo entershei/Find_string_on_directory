@@ -5,7 +5,6 @@
 
 extern QPair<bool, QVector<QString>> my_find_string::find_string(QString const &dir, QString const &stringForSearch,
                                                     const std::atomic_bool &find_string_run) {
-    qDebug() << "%my_find_string::find_string";
     long long n = 100000000;
 
     QVector<QString> files;
@@ -15,8 +14,6 @@ extern QPair<bool, QVector<QString>> my_find_string::find_string(QString const &
     }
 
     files.push_back("abc.txt");
-
-    qDebug() << "%end find string" << files.size();
 
     return {true, files};
 }
