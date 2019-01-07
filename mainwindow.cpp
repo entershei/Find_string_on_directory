@@ -17,10 +17,11 @@
 #include <QThread>
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QKeyEvent>
 
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow), given_string(false) {
+    , ui(new Ui::MainWindow), dir_path(""), given_string(false) {
     ui->setupUi(this);
     future_for_index.finish_index = false;
 
@@ -39,6 +40,18 @@ main_window::main_window(QWidget *parent)
 
     connect(&future_for_index.watcher, SIGNAL(finished()), this, SLOT(index_finished()));
     connect(&future_for_search.watcher, SIGNAL(finished()), this, SLOT(search_finished()));
+}
+
+void main_window::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Enter) {
+        try_find_string();
+    }
+}
+
+void main_window::keyReleaseEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Tab) {
+        ui->actionFind_string_on_directory->click();
+    }
 }
 
 main_window::~main_window() {
@@ -74,8 +87,15 @@ void main_window::stop_indexation(std::atomic_bool &index_run) {
 void main_window::index_directory() {
     stop_indexation(thread_run.index);
 
-    QString dir = QFileDialog::getExistingDirectory(this, "Select Directory for Indexation",
-                                                    QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString dir;
+    if (dir_path.size() > 0) {
+        dir = QFileDialog::getExistingDirectory(this, "Select Directory for Indexation", dir_path,
+                                                        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    } else {
+        dir = QFileDialog::getExistingDirectory(this, "Select Directory for Indexation",
+                                                        QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    }
+
     if (dir.isEmpty()) {
         // todo
         return;
@@ -97,7 +117,7 @@ void main_window::search_finished() {
     }
 
     if (!future_for_search.watcher.result().first) {
-        qDebug() << "search finished with error";
+        qDebug() << "search finished with cancel";
         return;
     }
 
@@ -134,8 +154,6 @@ void main_window::try_find_string() {
     ui->treeWidget->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     stringForSearch = ui->StringForSearch->text();
-
-    //qDebug() << "string for search " << stringForSearch << " " << stringForSearch.size();
 
     if (stringForSearch.size() < 3) {
         // todo

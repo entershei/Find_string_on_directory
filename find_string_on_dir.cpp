@@ -5,32 +5,30 @@
 #include <fstream>
 
 int get_trigrams(char a, char b, char c) {
-    using uint = unsigned long;
-    uint base = (1 << 8);
-
-    return uint(a) * base * base + uint(b) * base + uint(c);
+    int base = (1 << 8);
+    return int(a) * base * base + int(b) * base + int(c);
 }
 
 bool has_trigrams(const std::vector<int> &file_trigrams, int trigram) {
-     auto find_trigrams = std::lower_bound(file_trigrams.begin(), file_trigrams.end(), trigram);
-
-     return (find_trigrams != file_trigrams.end());
+     return (std::lower_bound(file_trigrams.begin(), file_trigrams.end(), trigram)) != file_trigrams.end();
 }
 
 bool boyer_moore_searcher(const QString &file_path, const QString &stringForSearch) {
     std::ifstream file(file_path.toStdString());
-    //size_t MAX_BLOCK = std::max((1 << 12), stringForSearch.size() + 1);
-    size_t MAX_BLOCK = std::max(10, stringForSearch.size() + 1); //test for different blok with string in smalltestwith_aaabc
+    size_t MAX_BLOCK = std::max((1 << 12), stringForSearch.size() + 1);
+    //int MAX_BLOCK = std::max(10, stringForSearch.size() + 1); //test for different blok with string in smalltestwith_aaabc
 
     if(file.is_open()) {
         std::string buffer;
-        buffer.resize(MAX_BLOCK);
+        buffer.resize(size_t(MAX_BLOCK) + size_t(stringForSearch.size()) + 1);
         std::string previous_buffer = "";
         size_t size_buffer = 0;
-        do{
-            file.read(&buffer[previous_buffer.size()], MAX_BLOCK + previous_buffer.size());
-            buffer.resize(size_t(file.gcount()) + previous_buffer.size());
-            size_buffer = buffer.size() - previous_buffer.size();
+        size_t size_new_buffer = 0;
+        do{ 
+            file.read(&buffer[previous_buffer.size()], MAX_BLOCK);
+            size_new_buffer = size_t(file.gcount());
+            size_buffer = size_new_buffer + previous_buffer.size();
+
             for (size_t i = 0; i < previous_buffer.size(); ++i) {
                 buffer[i] = previous_buffer[i];
             }
@@ -40,12 +38,13 @@ bool boyer_moore_searcher(const QString &file_path, const QString &stringForSear
                 return true;
             }
 
-            if (buffer.size() > stringForSearch.size()) {
-                previous_buffer = buffer.substr(buffer.size() - stringForSearch.size() + 1, stringForSearch.size() - 1);
+            if (size_buffer > size_t(stringForSearch.size())) {
+                previous_buffer = buffer.substr(size_buffer - size_t(stringForSearch.size()) + 1,
+                                                size_t(stringForSearch.size() - 1));
             } else {
                 previous_buffer = "";
             }
-        } while(size_buffer > 0);
+        } while(size_new_buffer > 0);
     }
 
     return false;

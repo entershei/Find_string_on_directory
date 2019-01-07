@@ -10,8 +10,8 @@
 
 namespace fs = std::filesystem;
 
-//const size_t MAX_BLOCK = 1 << 12;
-const size_t MAX_BLOCK = 10; //test for different blok with string
+const size_t MAX_BLOCK = 1 << 12;
+//const size_t MAX_BLOCK = 10; //test for different blok with string
 const size_t MAX_DIFFERENT_TRIGRAM = 200000;
 bool bad_trigram(unsigned char a) {
     return (a == 0x00) || (a == 0xC0) || (a == 0xC1) || (0xF5 <= a && a <= 0xFF);
@@ -34,21 +34,20 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
 
     std::ifstream file(dir_file.path());
 
-    qDebug() << QString::fromUtf8(dir_file.path().c_str());
-
     if(file.is_open()) {
         bool not_utf8_file = false;
         std::unordered_set<int> different_trigrams;
         std::string buffer;
-        buffer.resize(MAX_BLOCK);
+        buffer.resize(MAX_BLOCK + 3);
         std::string previous_buffer = "";
         size_t size_buffer = 0;
+        size_t size_new_buffer = 0;
         do{
-            file.read(&buffer[previous_buffer.size()], MAX_BLOCK + previous_buffer.size());
-            buffer.resize(size_t(file.gcount()) + previous_buffer.size());
-            size_buffer = buffer.size() - previous_buffer.size();
+            file.read(&buffer[previous_buffer.size()], MAX_BLOCK);
+            size_new_buffer = size_t(file.gcount());
+            size_buffer = size_new_buffer + previous_buffer.size();
 
-            if (buffer.size() < 3) {
+            if (size_buffer < 3) {
                 break;
             }
 
@@ -56,13 +55,11 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
                 buffer[i] = previous_buffer[i];
             }
 
-            qDebug() << QString::fromUtf8(buffer.c_str()) << " " << buffer.size();
-
-            for (size_t i = 0; i < buffer.size() - 2; ++i) {
+            for (size_t i = 0; i < size_buffer - 2; ++i) {
                 int cur_trigram = get_trigram(buffer[i], buffer[i + 1], buffer[i + 2], not_utf8_file);
 
                 if (not_utf8_file) {
-                    qDebug() << "not utf8";
+                    //qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
                     break;
                 } else {
                     different_trigrams.insert(cur_trigram);
@@ -74,13 +71,13 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
                 }
             }
 
-            if (buffer.size() > 1) {
-                previous_buffer = buffer.substr(buffer.size() - 2, 2);
+            if (size_buffer > 1) {
+                previous_buffer = buffer.substr(size_buffer - 2, 2);
             } else {
                 previous_buffer = "";
             }
 
-        } while(size_buffer > 0 && !not_utf8_file);
+        } while(size_new_buffer > 0 && !not_utf8_file);
 
         std::vector<int> trigrams;
 
@@ -92,7 +89,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
 
             ret.insert(QString::fromUtf8(dir_file.path().c_str()), trigrams);
 
-            qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
+            //qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
 
             /*for (auto i : trigrams) {
                 qDebug() << i << " " <<  char(i / 256 / 256) << char((i / 256) % 256) << char(i % 256);

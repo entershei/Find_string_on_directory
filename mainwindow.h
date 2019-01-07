@@ -52,6 +52,8 @@ private slots:
     void index_finished();
     void search_finished();
     void close();
+    void keyPressEvent(QKeyEvent*);
+    void keyReleaseEvent(QKeyEvent*);
 
 private:
     void stop_indexation(std::atomic_bool & index_run);
