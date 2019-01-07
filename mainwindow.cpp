@@ -121,7 +121,7 @@ void main_window::find_string() {
     thread_run.find_string = true;
 
     future_for_search.watcher.setFuture(QtConcurrent::run
-                                        (my_find_string::find_string, dir_path, stringForSearch, std::ref(thread_run.find_string)));
+                                        (my_find_string::find_string, stringForSearch, trigrams, std::ref(thread_run.find_string)));
 }
 
 void main_window::try_find_string() {
@@ -134,6 +134,14 @@ void main_window::try_find_string() {
     ui->treeWidget->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     stringForSearch = ui->StringForSearch->text();
+
+    //qDebug() << "string for search " << stringForSearch << " " << stringForSearch.size();
+
+    if (stringForSearch.size() < 3) {
+        // todo
+        return;
+    }
+
     given_string = true;
 
     if (future_for_index.finish_index) {

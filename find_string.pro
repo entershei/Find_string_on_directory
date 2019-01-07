@@ -42,3 +42,4 @@ CONFIG += c++17
 QMAKE_CXXFLAGS += -std=c++17
 QMAKE_LFLAGS += -lstdc++fs
 LIBS += -lstdc++fs
+QT += concurrent
