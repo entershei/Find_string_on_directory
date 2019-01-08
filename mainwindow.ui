@@ -48,6 +48,25 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
+    <item row="0" column="1">
+     <widget class="QLineEdit" name="StringForSearch"/>
+    </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="actionFind_string_on_directory">
+      <property name="text">
+       <string>Find string on directory</string>
+      </property>
+      <property name="autoDefault">
+       <bool>true</bool>
+      </property>
+      <property name="default">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
     <item row="3" column="1">
      <widget class="QTreeWidget" name="treeWidget">
       <property name="enabled">
@@ -94,25 +113,6 @@
       </column>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="StringForSearch"/>
-    </item>
-    <item row="2" column="1">
-     <widget class="QPushButton" name="actionFind_string_on_directory">
-      <property name="text">
-       <string>Find string on directory</string>
-      </property>
-      <property name="autoDefault">
-       <bool>true</bool>
-      </property>
-      <property name="default">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -143,6 +143,9 @@
    </attribute>
    <addaction name="actionIndex_Directory"/>
    <addaction name="separator"/>
+   <addaction name="actionCancel_index"/>
+   <addaction name="separator"/>
+   <addaction name="actionCancel_find_string"/>
   </widget>
   <action name="actionIndex_Directory">
    <property name="enabled">
@@ -158,6 +161,16 @@
   <action name="actionExit">
    <property name="text">
     <string>&amp;Exit</string>
+   </property>
+  </action>
+  <action name="actionCancel_index">
+   <property name="text">
+    <string>Don't use this directory</string>
+   </property>
+  </action>
+  <action name="actionCancel_find_string">
+   <property name="text">
+    <string>&amp;Don't find this string</string>
    </property>
   </action>
  </widget>

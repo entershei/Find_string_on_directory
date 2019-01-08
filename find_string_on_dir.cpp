@@ -3,6 +3,7 @@
 #include <iostream>
 #include <QDebug>
 #include <fstream>
+#include <QtConcurrent/QtConcurrentMap>
 
 int get_trigrams(char a, char b, char c) {
     int base = (1 << 8);
@@ -61,27 +62,23 @@ bool string_searcher(const QString &file_path, const std::string &string_for_sea
     return false;
 }
 
-extern QPair<bool, QVector<QString>> my_find_string::find_string(QString const &QString_for_search,
-                                                    const QHash<QString, std::vector<int>> &files_trigrams,
-                                                    const std::atomic_bool &find_string_run) {
+struct MappingFunctor {
+    MappingFunctor(const QHash<QString, std::vector<int>> &files_trigrams, const QString &QString_for_search,
+                  const std::atomic_bool &find_string_run): files_trigrams(files_trigrams),
+                                                            find_string_run(find_string_run) {
+        string_for_search = QString_for_search.toStdString();
+    }
 
-    if (!find_string_run) { return {false, {}}; }
-
-    QVector<QString> file_with_string;
-
-    std::string string_for_search = QString_for_search.toStdString();
-
-    for (auto& i : files_trigrams.keys()) {
-        if (!find_string_run) { return {false, {}}; }
-
+    QVector<QString> operator() (const QString& name_file) const {
+        if (!find_string_run) { return {}; }
         bool has_all_trigrams_of_string = true;
-        for (int j = 0; j < int(string_for_search.size()) - 3; ++j) {
-            if (!find_string_run) { return {false, {}}; }
+        for (int i = 0; i < int(string_for_search.size()) - 2; ++i) {
+            if (!find_string_run) { return {}; }
 
-            int cur_trigrams = get_trigrams(string_for_search[size_t(j)], string_for_search[size_t(j + 1)],
-                                            string_for_search[size_t(j + 2)]);
+            int cur_trigrams = get_trigrams(string_for_search[size_t(i)], string_for_search[size_t(i + 1)],
+                                            string_for_search[size_t(i + 2)]);
 
-            if (!has_trigrams(files_trigrams.value(i), cur_trigrams)) {
+            if (!has_trigrams(files_trigrams.value(name_file), cur_trigrams)) {
                 has_all_trigrams_of_string = false;
                 break;
             }
@@ -90,11 +87,46 @@ extern QPair<bool, QVector<QString>> my_find_string::find_string(QString const &
         if (!find_string_run) { return {false, {}}; }
 
         if (has_all_trigrams_of_string) {
-            if (string_searcher(i, string_for_search, find_string_run)) {
-                file_with_string.append(i);
+            if (string_searcher(name_file, string_for_search, find_string_run)) {
+                return {name_file};
             }
         }
+        return {};
     }
+
+    using result_type = QVector<QString>;
+
+    const QHash<QString, std::vector<int>> &files_trigrams;
+    std::string string_for_search;
+    const std::atomic_bool &find_string_run;
+};
+
+struct ReducingFunctor {
+    ReducingFunctor(const std::atomic_bool &find_string_run): find_string_run(find_string_run) {}
+
+    void operator() (QVector<QString> &l_vector, const QVector<QString> &r_vector) {
+        if (find_string_run) {
+            l_vector.append(r_vector);
+        } else {
+            return;
+        }
+    }
+
+    const std::atomic_bool &find_string_run;
+};
+
+extern QPair<bool, QVector<QString>> my_find_string::find_string(QString const &QString_for_search,
+                                                    const QHash<QString, std::vector<int>> &files_trigrams,
+                                                    const std::atomic_bool &find_string_run) {
+
+    if (!find_string_run) { return {false, {}}; }
+
+    QVector<QString> file_with_string;
+
+    file_with_string = QtConcurrent::blockingMappedReduced<QVector<QString>>(files_trigrams.keys(),
+                        MappingFunctor(files_trigrams, QString_for_search, find_string_run),
+                        ReducingFunctor(find_string_run));
+
     if (!find_string_run) { return {false, {}}; }
     return {true, file_with_string};
 }

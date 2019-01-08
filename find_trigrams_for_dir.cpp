@@ -68,7 +68,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
                 int cur_trigram = get_trigram(buffer[i], buffer[i + 1], buffer[i + 2], not_utf8_file);
 
                 if (not_utf8_file) {
-                    qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
+                    //qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
                     break;
                 } else {                    
                     if (!index_run) { return ret; }
@@ -106,7 +106,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
 
             ret.insert(QString::fromUtf8(dir_file.path().c_str()), trigrams);
 
-            qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
+            //qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
         }
     }
     return ret;

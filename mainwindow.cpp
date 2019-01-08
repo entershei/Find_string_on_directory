@@ -19,9 +19,11 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
 
 main_window::main_window(QWidget *parent) : QMainWindow(parent),
-                        ui(new Ui::MainWindow), dir_path(""), given_string(false) {
+                        ui(new Ui::MainWindow), dir_path(""), given_string(false), want_to_close(false) {
     ui->setupUi(this);
     future_for_index.finish_index = false;
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
@@ -36,9 +38,32 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent),
 
     connect(ui->actionIndex_Directory, &QAction::triggered, this, &main_window::index_directory);
     connect(ui->actionFind_string_on_directory, SIGNAL(clicked()), this, SLOT(try_find_string()));
+    connect(ui->actionCancel_index, &QAction::triggered, this, &main_window::cancel_index);
+    connect(ui->actionCancel_find_string, &QAction::triggered, this, &main_window::cancel_find_string);
 
     connect(&future_for_index.watcher, SIGNAL(finished()), this, SLOT(index_finished()));
     connect(&future_for_search.watcher, SIGNAL(finished()), this, SLOT(search_finished()));
+
+    connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem *, int)), this,
+            SLOT(select_file(QTreeWidgetItem *, int)));
+}
+
+void main_window::cancel_index() {
+    ui->treeWidget->clear();
+    stop_indexation(thread_run.index);
+}
+
+void main_window::cancel_find_string() {
+    ui->treeWidget->clear();
+    stop_find_string(thread_run.find_string);
+}
+
+void main_window::select_file(QTreeWidgetItem *item, int column) {
+    QString all_path = QDir(dir_path).filePath(item->text(1));
+
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(all_path))) {
+        QMessageBox::information(this, tr("Open file error"), tr("Can't open file"));
+    }
 }
 
 void main_window::keyPressEvent(QKeyEvent *event) {
@@ -58,7 +83,7 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
-    if (!thread_run.index && !thread_run.find_string) {
+    if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
     }
@@ -104,15 +129,13 @@ void main_window::index_directory() {
 
     dir_path = dir;
 
-    ui->treeWidget->clear();
-
     thread_run.index = true;
 
     future_for_index.watcher.setFuture(QtConcurrent::run(my::find_trigrams, dir_path, std::ref(thread_run.index)));
 }
 
 void main_window::search_finished() {
-    if (!thread_run.index && !thread_run.find_string) {
+    if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
     }
@@ -158,7 +181,6 @@ void main_window::try_find_string() {
 
     if (string_for_search.size() < 3) {
         QMessageBox::information(this, tr("String error"), tr("String must be longer than 3 characters.\n(Also we don't consider a file of length less than 3)"));
-
         return;
     }
 
@@ -177,5 +199,10 @@ void main_window::stop_find_string(std::atomic_bool &find_string_run) {
 void main_window::close() {
     stop_indexation(thread_run.index);
     stop_find_string(thread_run.find_string);
+    want_to_close = true;
+
+    if (!thread_run.index && !thread_run.find_string) {
+        QWidget::close();
+    }
 }
 

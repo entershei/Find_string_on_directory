@@ -54,6 +54,9 @@ private slots:
     void close();
     void keyPressEvent(QKeyEvent*);
     void keyReleaseEvent(QKeyEvent*);
+    void select_file(QTreeWidgetItem *item, int column);
+    void cancel_index();
+    void cancel_find_string();
 
 private:
     void stop_indexation(std::atomic_bool & index_run);
@@ -70,6 +73,7 @@ private:
     bool given_string;
     QString string_for_search;
     QVector<QString> files_with_string;
+    bool want_to_close;
 };
 
 #endif // MAINWINDOW_H
