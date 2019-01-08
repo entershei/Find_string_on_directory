@@ -13,8 +13,8 @@ namespace fs = std::filesystem;
 const size_t MAX_BLOCK = 1 << 12;
 //const size_t MAX_BLOCK = 10; //test for different blok with string
 const size_t MAX_DIFFERENT_TRIGRAM = 200000;
-bool bad_trigram(unsigned char a) {
-    return (a == 0x00) || (a == 0xC0) || (a == 0xC1) || (0xF5 <= a && a <= 0xFF);
+bool bad_trigram(char a) {
+    return (a == char(0x00)) || (a == char(0xC0)) || (a == char(0xC1)) || (char(0xF5) <= a && a <= char(0xFF));
 }
 
 int get_trigram(char a, char b, char c, bool &has_bad_trigram) {
@@ -23,18 +23,20 @@ int get_trigram(char a, char b, char c, bool &has_bad_trigram) {
         return 0;
     }
 
-    using uint = unsigned long;
-    uint base = (1 << 8);
-
-    return uint(a) * base * base + uint(b) * base + uint(c);
+    int base = (1 << 8);
+    return int(a) * base * base + int(b) * base + int(c);
 }
 
-QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file) {
+QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file, const std::atomic_bool & index_run) {
     QHash<QString, std::vector<int>> ret;
+
+    if (!index_run) { return ret; }
 
     std::ifstream file(dir_file.path());
 
-    if(file.is_open()) {
+    if(file.is_open()) {        
+        if (!index_run) { return ret; }
+
         bool not_utf8_file = false;
         std::unordered_set<int> different_trigrams;
         std::string buffer;
@@ -42,7 +44,12 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
         std::string previous_buffer = "";
         size_t size_buffer = 0;
         size_t size_new_buffer = 0;
-        do{
+
+        if (!index_run) { return ret; }
+
+        do{            
+            if (!index_run) { return ret; }
+
             file.read(&buffer[previous_buffer.size()], MAX_BLOCK);
             size_new_buffer = size_t(file.gcount());
             size_buffer = size_new_buffer + previous_buffer.size();
@@ -56,12 +63,16 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
             }
 
             for (size_t i = 0; i < size_buffer - 2; ++i) {
+                if (!index_run) { return ret; }
+
                 int cur_trigram = get_trigram(buffer[i], buffer[i + 1], buffer[i + 2], not_utf8_file);
 
                 if (not_utf8_file) {
-                    //qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
+                    qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
                     break;
-                } else {
+                } else {                    
+                    if (!index_run) { return ret; }
+
                     different_trigrams.insert(cur_trigram);
 
                     if (different_trigrams.size() > MAX_DIFFERENT_TRIGRAM) {
@@ -72,6 +83,8 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
             }
 
             if (size_buffer > 1) {
+                if (!index_run) { return ret; }
+
                 previous_buffer = buffer.substr(size_buffer - 2, 2);
             } else {
                 previous_buffer = "";
@@ -79,21 +92,21 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
 
         } while(size_new_buffer > 0 && !not_utf8_file);
 
+        if (!index_run) { return ret; }
+
         std::vector<int> trigrams;
 
         if (!not_utf8_file) {
-            for (auto i : different_trigrams) {
+            for (auto i : different_trigrams) {                
+                if (!index_run) { return ret; }
+
                 trigrams.push_back(i);
             }
             std::sort(trigrams.begin(), trigrams.end());
 
             ret.insert(QString::fromUtf8(dir_file.path().c_str()), trigrams);
 
-            //qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
-
-            /*for (auto i : trigrams) {
-                qDebug() << i << " " <<  char(i / 256 / 256) << char((i / 256) % 256) << char(i % 256);
-            }*/
+            qDebug() << "add to files_trigrams " <<QString::fromUtf8(dir_file.path().c_str());
         }
     }
     return ret;
@@ -104,7 +117,7 @@ struct MappingFunctor {
 
     QHash<QString, std::vector<int>> operator()(const fs::directory_entry& file) const {
         if (index_run) {
-            return mapTrigrams(file);
+            return mapTrigrams(file, index_run);
         } else {
             return QHash<QString, std::vector<int>>();
         }
@@ -114,9 +127,18 @@ struct MappingFunctor {
     const std::atomic_bool &index_run;
 };
 
-void reduceTrigrams(QHash<QString, std::vector<int>> &l_hash, const QHash<QString, std::vector<int>> &r_hash) {
-    l_hash.unite(r_hash);
-}
+struct ReducingFunctor {
+    ReducingFunctor(const std::atomic_bool &index_run): index_run(index_run) {}
+
+    void operator() (QHash<QString, std::vector<int>> &l_hash, const QHash<QString, std::vector<int>> &r_hash) {
+        if (index_run) {
+            l_hash.unite(r_hash);
+        } else {
+            return;
+        }
+    }
+    const std::atomic_bool &index_run;
+};
 
 extern QPair<bool, QHash<QString, std::vector<int>> > my::find_trigrams(QString dir,
                                                           const std::atomic_bool &index_run) {
@@ -133,7 +155,8 @@ extern QPair<bool, QHash<QString, std::vector<int>> > my::find_trigrams(QString 
 
     if (!index_run) { return {false, all_trigrams}; }
 
-    all_trigrams = QtConcurrent::blockingMappedReduced(files, MappingFunctor(index_run), reduceTrigrams);
+    all_trigrams = QtConcurrent::blockingMappedReduced<QHash<QString, std::vector<int>> >(files, MappingFunctor(index_run),
+                                                       ReducingFunctor(index_run));
 
     if (index_run) {
         return {true, all_trigrams};

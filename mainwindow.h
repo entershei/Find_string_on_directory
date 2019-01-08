@@ -68,7 +68,7 @@ private:
     for_index future_for_index;
     for_search future_for_search;
     bool given_string;
-    QString stringForSearch;
+    QString string_for_search;
     QVector<QString> files_with_string;
 };
 

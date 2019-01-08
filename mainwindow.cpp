@@ -18,13 +18,12 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QKeyEvent>
+#include <QMessageBox>
 
-main_window::main_window(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow), dir_path(""), given_string(false) {
+main_window::main_window(QWidget *parent) : QMainWindow(parent),
+                        ui(new Ui::MainWindow), dir_path(""), given_string(false) {
     ui->setupUi(this);
     future_for_index.finish_index = false;
-
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
 
     ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
@@ -86,6 +85,7 @@ void main_window::stop_indexation(std::atomic_bool &index_run) {
 
 void main_window::index_directory() {
     stop_indexation(thread_run.index);
+    ui->treeWidget->clear();
 
     QString dir;
     if (dir_path.size() > 0) {
@@ -97,7 +97,8 @@ void main_window::index_directory() {
     }
 
     if (dir.isEmpty()) {
-        // todo
+        QMessageBox::information(this, tr("Directory error"), tr("Directory empty"));
+
         return;
     }
 
@@ -140,8 +141,8 @@ void main_window::search_finished() {
 void main_window::find_string() {
     thread_run.find_string = true;
 
-    future_for_search.watcher.setFuture(QtConcurrent::run
-                                        (my_find_string::find_string, stringForSearch, trigrams, std::ref(thread_run.find_string)));
+    future_for_search.watcher.setFuture(QtConcurrent::run(my_find_string::find_string, string_for_search,
+                                                          trigrams, std::ref(thread_run.find_string)));
 }
 
 void main_window::try_find_string() {
@@ -153,10 +154,11 @@ void main_window::try_find_string() {
     ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->treeWidget->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
-    stringForSearch = ui->StringForSearch->text();
+    string_for_search = ui->StringForSearch->text();
 
-    if (stringForSearch.size() < 3) {
-        // todo
+    if (string_for_search.size() < 3) {
+        QMessageBox::information(this, tr("String error"), tr("String must be longer than 3 characters.\n(Also we don't consider a file of length less than 3)"));
+
         return;
     }
 
@@ -175,6 +177,5 @@ void main_window::stop_find_string(std::atomic_bool &find_string_run) {
 void main_window::close() {
     stop_indexation(thread_run.index);
     stop_find_string(thread_run.find_string);
-    //QWidget::close();
 }
 
