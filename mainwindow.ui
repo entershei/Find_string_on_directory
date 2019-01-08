@@ -48,26 +48,23 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="StringForSearch"/>
-    </item>
-    <item row="2" column="1">
-     <widget class="QPushButton" name="actionFind_string_on_directory">
-      <property name="text">
-       <string>Find string on directory</string>
+    <item row="3" column="1">
+     <widget class="QProgressBar" name="progressBar_index">
+      <property name="value">
+       <number>24</number>
       </property>
-      <property name="autoDefault">
+      <property name="textVisible">
        <bool>true</bool>
       </property>
-      <property name="default">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
+      <property name="textDirection">
+       <enum>QProgressBar::TopToBottom</enum>
       </property>
      </widget>
     </item>
-    <item row="3" column="1">
+    <item row="0" column="1">
+     <widget class="QLineEdit" name="StringForSearch"/>
+    </item>
+    <item row="7" column="1">
      <widget class="QTreeWidget" name="treeWidget">
       <property name="enabled">
        <bool>true</bool>
@@ -111,6 +108,29 @@
         <string>File weight, KB</string>
        </property>
       </column>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="actionFind_string_on_directory">
+      <property name="text">
+       <string>Find string on directory</string>
+      </property>
+      <property name="autoDefault">
+       <bool>true</bool>
+      </property>
+      <property name="default">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QProgressBar" name="progressBar_find_string">
+      <property name="value">
+       <number>24</number>
+      </property>
      </widget>
     </item>
    </layout>

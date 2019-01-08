@@ -46,6 +46,13 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent),
 
     connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem *, int)), this,
             SLOT(select_file(QTreeWidgetItem *, int)));
+
+
+    ui->progressBar_index->setFormat("Process of index directory");
+    ui->progressBar_index->setValue(0);
+
+    ui->progressBar_find_string->setFormat("Process of find_string");
+    ui->progressBar_find_string->setValue(0);
 }
 
 void main_window::cancel_index() {
@@ -67,13 +74,13 @@ void main_window::select_file(QTreeWidgetItem *item, int column) {
 }
 
 void main_window::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Enter) {
+    if (event->key() == Qt::Key_Return) {
         try_find_string();
     }
 }
 
 void main_window::keyReleaseEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Tab) {
+    if (event->key() == Qt::Key_Return) {
         ui->actionFind_string_on_directory->click();
     }
 }
@@ -83,13 +90,14 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
+    qDebug() << "Time of index: " << time.get_time_of_index() << "s.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
     }
 
     if (!future_for_index.watcher.result().first) {
-        qDebug() << "finish with error";
+        qDebug() << "finish with cancel";
         return;
     }
 
@@ -111,6 +119,7 @@ void main_window::stop_indexation(std::atomic_bool &index_run) {
 void main_window::index_directory() {
     stop_indexation(thread_run.index);
     ui->treeWidget->clear();
+    time.set_start_time_index();
 
     QString dir;
     if (dir_path.size() > 0) {
@@ -135,6 +144,7 @@ void main_window::index_directory() {
 }
 
 void main_window::search_finished() {
+    qDebug() << "Time of find string: " << time.get_time_of_find_string() << "s.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
@@ -162,6 +172,7 @@ void main_window::search_finished() {
 }
 
 void main_window::find_string() {
+    time.set_start_time_find_string();
     thread_run.find_string = true;
 
     future_for_search.watcher.setFuture(QtConcurrent::run(my_find_string::find_string, string_for_search,
