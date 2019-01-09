@@ -65,6 +65,8 @@ private slots:
     void select_file(QTreeWidgetItem *item, int column);
     void cancel_index();
     void cancel_find_string();
+    //void progressBar_index();
+    //void progressBar_find_string();
 
 private:
     void stop_indexation(std::atomic_bool & index_run);

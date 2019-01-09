@@ -95,15 +95,19 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
-    qDebug() << "Time of index: " << timer.index.elapsed()  / 1000.0 << "ms.";
+    qDebug() << "Time of index: " << timer.index.elapsed()  / 1000.0 << "s.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
     }
 
     if (!future_for_index.watcher.result().first) {
-        qDebug() << "finish with cancel";
-        return;
+        if (!thread_run.index) {
+            qDebug() << "finish with cancel";
+            return;
+        } else {
+            QMessageBox::information(this, tr("Directory error"), tr("Sorry, can't index this directory"));
+        }
     }
 
     qDebug() << "main_window::index_finished";
@@ -157,7 +161,7 @@ void main_window::index_directory() {
 }
 
 void main_window::search_finished() {
-    qDebug() << "Time of find string: " << timer.find_string.elapsed() / 1000.0 << "ms.";
+    qDebug() << "Time of find string: " << timer.find_string.elapsed() / 1000.0 << "s.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;

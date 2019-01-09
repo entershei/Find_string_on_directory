@@ -7,6 +7,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <algorithm>
+#include <QMessageBox>
 
 namespace fs = std::filesystem;
 
@@ -29,12 +30,13 @@ int get_trigram(char a, char b, char c, bool &has_bad_trigram) {
 
 QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file, const std::atomic_bool & index_run) {
     QHash<QString, std::vector<int>> ret;
+    //qDebug() << "index file: " << QString::fromUtf8(dir_file.path().c_str());
 
     if (!index_run) { return ret; }
 
     std::ifstream file(dir_file.path());
 
-    if(file.is_open()) {        
+    if(file.is_open()) {
         if (!index_run) { return ret; }
 
         bool not_utf8_file = false;
@@ -47,7 +49,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
 
         if (!index_run) { return ret; }
 
-        do{            
+        do{
             if (!index_run) { return ret; }
 
             file.read(&buffer[previous_buffer.size()], MAX_BLOCK);
@@ -70,7 +72,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
                 if (not_utf8_file) {
                     //qDebug() << "not utf8 " << QString::fromUtf8(dir_file.path().c_str()) << " " << i << " " <<  buffer[i] << buffer[i + 1] << buffer[i + 2];
                     break;
-                } else {                    
+                } else {
                     if (!index_run) { return ret; }
 
                     different_trigrams.insert(cur_trigram);
@@ -97,7 +99,7 @@ QHash<QString, std::vector<int>> mapTrigrams(const fs::directory_entry& dir_file
         std::vector<int> trigrams;
 
         if (!not_utf8_file) {
-            for (auto i : different_trigrams) {                
+            for (auto i : different_trigrams) {
                 if (!index_run) { return ret; }
 
                 trigrams.push_back(i);
@@ -145,22 +147,27 @@ extern QPair<bool, QHash<QString, std::vector<int>> > my::find_trigrams(QString 
     QHash<QString, std::vector<int>> all_trigrams;
     fs::path new_path(dir.toStdString());
 
-    std::vector<fs::directory_entry> files;
+    try {
+        std::vector<fs::directory_entry> files;
 
-    for (auto& cur_file: fs::recursive_directory_iterator(new_path, fs::directory_options::skip_permission_denied)) {
+        for (auto& cur_file: fs::recursive_directory_iterator(new_path, fs::directory_options::skip_permission_denied)) {
+            if (!index_run) { return {false, all_trigrams}; }
+
+            files.push_back(cur_file);
+        }
+
         if (!index_run) { return {false, all_trigrams}; }
 
-        files.push_back(cur_file);
-    }
+        all_trigrams = QtConcurrent::blockingMappedReduced<QHash<QString, std::vector<int>> >(files, MappingFunctor(index_run),
+                                                           ReducingFunctor(index_run));
 
-    if (!index_run) { return {false, all_trigrams}; }
-
-    all_trigrams = QtConcurrent::blockingMappedReduced<QHash<QString, std::vector<int>> >(files, MappingFunctor(index_run),
-                                                       ReducingFunctor(index_run));
-
-    if (index_run) {
-        return {true, all_trigrams};
-    } else {
+        if (index_run) {
+            return {true, all_trigrams};
+        } else {
+            return {false, all_trigrams};
+        }
+    } catch(...) {
         return {false, all_trigrams};
     }
 }
+
