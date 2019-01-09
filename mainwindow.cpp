@@ -95,7 +95,7 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
-    qDebug() << "Time of index: " << timer.index.elapsed() << "ms.";
+    qDebug() << "Time of index: " << timer.index.elapsed()  / 1000.0 << "ms.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
@@ -157,7 +157,7 @@ void main_window::index_directory() {
 }
 
 void main_window::search_finished() {
-    qDebug() << "Time of find string: " << timer.find_string.elapsed() << "ms.";
+    qDebug() << "Time of find string: " << timer.find_string.elapsed() / 1000.0 << "ms.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
