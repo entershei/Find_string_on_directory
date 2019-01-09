@@ -47,20 +47,25 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent),
     connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem *, int)), this,
             SLOT(select_file(QTreeWidgetItem *, int)));
 
-
-    ui->progressBar_index->setFormat("Process of index directory");
-    ui->progressBar_index->setValue(0);
-
-    ui->progressBar_find_string->setFormat("Process of find_string");
-    ui->progressBar_find_string->setValue(0);
+    ui->progressBar->setFormat("Process of index directory");
+    ui->progressBar->setValue(0);
 }
 
 void main_window::cancel_index() {
+    ui->progressBar->setFormat("Process of index directory");
+    ui->progressBar->setValue(0);
+
     ui->treeWidget->clear();
     stop_indexation(thread_run.index);
+    stop_find_string(thread_run.find_string);
 }
 
 void main_window::cancel_find_string() {
+    if (thread_run.find_string) {
+        ui->progressBar->setFormat("Process of find_string");
+        ui->progressBar->setValue(0);
+    }
+
     ui->treeWidget->clear();
     stop_find_string(thread_run.find_string);
 }
@@ -90,7 +95,7 @@ main_window::~main_window() {
 }
 
 void main_window::index_finished() {
-    qDebug() << "Time of index: " << time.get_time_of_index() << "s.";
+    qDebug() << "Time of index: " << timer.index.elapsed() << "ms.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
@@ -117,9 +122,11 @@ void main_window::stop_indexation(std::atomic_bool &index_run) {
 }
 
 void main_window::index_directory() {
+    ui->progressBar->setFormat("Process of index directory");
+    ui->progressBar->setValue(0);
+
     stop_indexation(thread_run.index);
     ui->treeWidget->clear();
-    time.set_start_time_index();
 
     QString dir;
     if (dir_path.size() > 0) {
@@ -128,6 +135,12 @@ void main_window::index_directory() {
     } else {
         dir = QFileDialog::getExistingDirectory(this, "Select Directory for Indexation",
                                                         QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    }
+
+    if (timer.index.isValid()) {
+        timer.index.restart();
+    } else {
+        timer.index.start();
     }
 
     if (dir.isEmpty()) {
@@ -144,7 +157,7 @@ void main_window::index_directory() {
 }
 
 void main_window::search_finished() {
-    qDebug() << "Time of find string: " << time.get_time_of_find_string() << "s.";
+    qDebug() << "Time of find string: " << timer.find_string.elapsed() << "ms.";
     if (want_to_close && !thread_run.index && !thread_run.find_string) {
         QWidget::close();
         return;
@@ -172,7 +185,15 @@ void main_window::search_finished() {
 }
 
 void main_window::find_string() {
-    time.set_start_time_find_string();
+    ui->progressBar->setFormat("Process of find_string");
+    ui->progressBar->setValue(0);
+
+    if (timer.find_string.isValid()) {
+        timer.find_string.restart();
+    } else {
+        timer.find_string.start();
+    }
+
     thread_run.find_string = true;
 
     future_for_search.watcher.setFuture(QtConcurrent::run(my_find_string::find_string, string_for_search,

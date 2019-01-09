@@ -12,6 +12,7 @@
 #include <atomic>
 #include <ctime>
 #include <cmath>
+#include <QElapsedTimer>
 
 namespace Ui {
     class MainWindow;
@@ -34,24 +35,8 @@ struct for_search {
 };
 
 struct my_time_t {
-    void set_start_time_index() {
-        start_time_index = clock() / 1000000.0;
-    }
-
-    void set_start_time_find_string() {
-        start_time_find_string = clock() / 1000000.0;
-    }
-
-    double get_time_of_index() {
-        return clock() / 1000000.0 - start_time_index;
-    }
-
-    double get_time_of_find_string() {
-        return clock() / 1000000.0  - start_time_find_string;
-    }
-
-    std::atomic<double> start_time_index;
-    std::atomic<double> start_time_find_string;
+    QElapsedTimer index;
+    QElapsedTimer find_string;
 };
 
 class main_window : public QMainWindow
@@ -97,7 +82,7 @@ private:
     QString string_for_search;
     QVector<QString> files_with_string;
     bool want_to_close;
-    my_time_t time;
+    my_time_t timer;
 };
 
 #endif // MAINWINDOW_H
