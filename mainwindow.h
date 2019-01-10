@@ -85,6 +85,7 @@ private:
     QVector<QString> files_with_string;
     bool want_to_close;
     my_time_t timer;
+    bool flag_want_to_find_string;
 };
 
 #endif // MAINWINDOW_H

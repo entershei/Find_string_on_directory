@@ -22,8 +22,7 @@ bool has_trigrams(const std::vector<int> &file_trigrams, int trigram) {
 
 bool string_searcher(const QString &file_path, size_t size_string_for_search,
                      const std::atomic_bool &find_string_run,
-                     const boyer_moore_searcher_t &b_m_searcher,
-                     const std::string &string_for_search) {
+                     const boyer_moore_searcher_t &b_m_searcher) {
     if (!find_string_run) { return  false; }
 
     std::ifstream file(file_path.toStdString());
@@ -47,20 +46,13 @@ bool string_searcher(const QString &file_path, size_t size_string_for_search,
             size_buffer = size_new_buffer + previous_buffer.size();
 
             for (size_t i = 0; i < previous_buffer.size(); ++i) {          
-                if (!find_string_run) { return  false; }
-
                 buffer[i] = previous_buffer[i];
-            }
-            //auto it = std::search(buffer.begin(), buffer.end(), std::boyer_moore_searcher(string_for_search.begin(), string_for_search.end()));
-            //auto it = std::search(buffer.begin(), buffer.end(), string_for_search.begin(), string_for_search.end());
-
+            }         
             auto it = std::search(buffer.begin(), buffer.end(), b_m_searcher);
 
             if (it != buffer.end()) {
                 return true;
             }
-
-            if (!find_string_run) { return  false; }
 
             if (size_buffer > size_string_for_search) {
                 previous_buffer = buffer.substr(size_buffer - size_string_for_search + 1,
@@ -99,10 +91,8 @@ struct MappingFunctor {
             }
         }
 
-        if (!find_string_run) { return {}; }
-
-        if (has_all_trigrams_of_string) {
-            if (string_searcher(name_file, string_for_search.size(), find_string_run, b_m_searcher.value(), string_for_search)) {
+        if (find_string_run && has_all_trigrams_of_string) {
+            if (string_searcher(name_file, string_for_search.size(), find_string_run, b_m_searcher.value())) {
                 return {name_file};
             }
         }

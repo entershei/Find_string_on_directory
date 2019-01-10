@@ -23,7 +23,7 @@
 #include <QUrl>
 
 main_window::main_window(QWidget *parent) : QMainWindow(parent),
-                        ui(new Ui::MainWindow), dir_path(""), given_string(false), want_to_close(false) {
+                        ui(new Ui::MainWindow), dir_path(""), given_string(false), want_to_close(false), flag_want_to_find_string(true) {
     ui->setupUi(this);
     future_for_index.finish_index = false;
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
@@ -79,13 +79,13 @@ void main_window::select_file(QTreeWidgetItem *item, int column) {
 }
 
 void main_window::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Return) {
+    if (event->key() == Qt::Key_Return && flag_want_to_find_string) {
         try_find_string();
     }
 }
 
 void main_window::keyReleaseEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Return) {
+    if (event->key() == Qt::Key_Return && flag_want_to_find_string) {
         ui->actionFind_string_on_directory->click();
     }
 }
@@ -132,6 +132,7 @@ void main_window::index_directory() {
     stop_indexation(thread_run.index);
     ui->treeWidget->clear();
 
+    flag_want_to_find_string = false;
     QString dir;
     if (dir_path.size() > 0) {
         dir = QFileDialog::getExistingDirectory(this, "Select Directory for Indexation", dir_path,
@@ -156,6 +157,8 @@ void main_window::index_directory() {
     dir_path = dir;
 
     thread_run.index = true;
+
+    flag_want_to_find_string = true;
 
     future_for_index.watcher.setFuture(QtConcurrent::run(my::find_trigrams, dir_path, std::ref(thread_run.index)));
 }
